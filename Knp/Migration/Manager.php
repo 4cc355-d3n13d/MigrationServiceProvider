@@ -119,6 +119,45 @@ class Manager
 
         $this->connection->insert($this->migrationsTableName, array('schema_version' => 0));
     }
+    
+    public migrateTo($verison)
+    {
+        $currentVersion    = $this->connection->fetchColumn('SELECT ' . $this->migrationsTableName . ' FROM schema_version');
+
+        if ($currentVersion == $verison) {
+            return null;
+        }
+        //Rollback
+        if ($currentVersion > $verison) {
+            $queries = array();
+
+            $needRollbackMigrations = $this->findMigrations($verison);
+
+            $migrationInfos = array();
+            //Delete inserted data
+            foreach ($needRollbackMigrations as $needRollbackMigration) {
+                $needRollbackMigration->appDown($this->application);
+                //Remove changes in database structure
+                $needRollbackMigration->schemaDown($this->toSchema);
+                //Add infors
+                if (null !== $needRollbackMigration->getMigrationInfo()) {
+                    $migrationInfos[$needRollbackMigration->getVersion()] = "Roll back: " . $needRollbackMigration->getMigrationInfo();
+                }
+
+                $this->migrationExecuted++;
+            }
+            
+            $this->migrationInfos = $migrationInfos;
+
+            $this->buildSchema($this->toSchema);
+
+            $this->setCurrentVersion($verison);
+        } else {
+            $this->migrate();
+        }
+
+        return true;
+    }
 
     public function migrate()
     {
