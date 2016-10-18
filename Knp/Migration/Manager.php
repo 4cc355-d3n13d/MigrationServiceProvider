@@ -36,7 +36,7 @@ class Manager
         }
     }
 
-    private function buildSchema(Schema $schema)
+    protected function buildSchema(Schema $schema)
     {
         $queries = $this->schema->getMigrateToSql($schema, $this->connection->getDatabasePlatform());
 
@@ -45,7 +45,7 @@ class Manager
         }
     }
 
-    private function findMigrations($from)
+    protected function findMigrations($from)
     {
         $finder     = clone($this->finder);
         $migrations = array();
