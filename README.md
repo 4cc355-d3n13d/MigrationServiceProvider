@@ -1,5 +1,5 @@
 #Introduction
-This is one fork from KnpLabs/MigrationServiceProvider which is alter for working in silex 2 and add migrate to a specific version
+This is one fork from KnpLabs/MigrationServiceProvider which is altered for working in silex 2 and add migrate to a specific version
 # Migrations
 
 This is a simple homebrew schema migration system for silex and doctrine.
