@@ -1,5 +1,5 @@
 #Introduction
-This is one fork from KnpLabs/MigrationServiceProvider which is altered for working in silex 2 and add migrate to a specific version
+This is one fork from [KnpLabs/MigrationServiceProvider](https://github.com/KnpLabs/MigrationServiceProvider) which is altered for working in silex 2 and add migrate to a specific version
 # Migrations
 
 This is a simple homebrew schema migration system for silex and doctrine.
@@ -66,4 +66,93 @@ You can then use it with something like that:
           {% endfor %}
         </div>
       {% endif %}
+```
+## Examples
+Add your migrate command: MigrationToCommand.php
+```php
+...
+use Knp\Command\Command;
+
+use Symfony\Component\Console\Input\InputDefinition;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+
+class MigrationToCommand extends Command
+{
+    public function configure()
+    {
+        $this->setName('mhl:migration:migrate')
+        ->addArgument('version', InputArgument::OPTIONAL, 'The version number (1 or 2 or ...) to migrate to.', null);
+    }
+
+    public function execute(InputInterface $input, OutputInterface $output)
+    {
+        $app        = $this->getSilexApplication();
+        $manager    = $app['migration'];
+
+        if (!$manager->hasVersionInfo()) {
+            $manager->createVersionInfo();
+        }
+
+        $targetVersion = $input->getArgument('version');
+        if (isset($targetVersion)){
+        	$res = $manager->migrateTo($targetVersion);
+        } else {
+        	$res = $manager->migrate();
+        }
+        switch($res) {
+            case true:
+                $output->writeln(sprintf('Succesfully executed <info>%d</info> migration(s)!', $manager->getMigrationExecuted()));
+                foreach ($manager->getMigrationInfos() as $info) {
+                    $output->writeln(sprintf(' - <info>%s</info>', $info));
+                }
+                break;
+            case null:
+                $output->writeln('No migrations to execute, you are up to date!');
+                break;
+        }
+    }
+}
+```
+Then create database version migrate files: 1_ProjectV1Migration.php. The name must be followed `version_*Migration`. If you have muntiple version for one table, the `*` must be unique for each table.
+```php
+<?php
+
+namespace Migration;
+
+use Doctrine\DBAL\Schema\Schema;
+use Silex\Application;
+
+class ProjectV1Migration
+{
+    public function schemaUp(Schema $schema)
+    {
+        $projectTable = $schema->createTable('project');
+        $projectTable->addColumn('id', 'integer', array(
+            'unsigned'      => true,
+            'autoincrement' => true
+        ));
+        $projectTable->addColumn('name', 'string');
+        $projectTable->addColumn('description', 'text');
+        $projectTable->addColumn('username', 'string');
+        $projectTable->setPrimaryKey(array('id'));
+        $projectTable->addUniqueIndex(array('name'));
+    }
+    public function getMigrationInfo()
+    {
+        return 'Added project table';
+    }
+    public function getVersion()
+    {
+        $rc = new \ReflectionClass($this);
+        if (preg_match('/^(\d+)/', basename($rc->getFileName()), $matches)) {
+            return (int) ltrim($matches[1], 0);
+        }
+        throw new RuntimeError(sprintf('Could not get version from "%"', basename($rc->getFileName())));
+    }
+    public function schemaDown(Schema $schema) {}
+    public function appUp(Application $app) {}
+    public function appDown(Application $app) {}
+}
 ```
