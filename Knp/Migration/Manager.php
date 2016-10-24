@@ -120,7 +120,7 @@ class Manager
         $this->connection->insert($this->migrationsTableName, array('schema_version' => 0));
     }
     
-    public migrateTo($verison)
+    public function migrateTo($verison)
     {
         $currentVersion    = $this->connection->fetchColumn('SELECT ' . $this->migrationsTableName . ' FROM schema_version');
 
